@@ -1,0 +1,4 @@
+name: NexoBedrock
+version: '0.1'
+main: com.portalgg.nexobedrock.NexoBedrock
+api-version: '1.21'
