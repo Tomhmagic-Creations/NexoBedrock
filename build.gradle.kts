@@ -20,17 +20,31 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/") // Paper
     maven("https://repo.nexomc.com/releases")
     maven("https://repo.nexomc.com/snapshots")
+    mavenLocal()
 }
 
 dependencies {
     paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT") //NMS
-    compileOnly("com.nexomc:nexo:0.7.0")
+    compileOnly("com.nexomc:nexo:0.9-dev")
+
+    implementation("io.th0rgal:protectionlib:1.8.0")
+    implementation("com.jeff-media:custom-block-data:2.2.2")
+    implementation("com.jeff-media:MorePersistentDataTypes:2.4.0")
+    implementation("com.jeff-media:persistent-data-serializer:1.0")
+}
+
+tasks {
+    shadowJar {
+        relocate("kotlin.", "com.nexomc.libs.kotlin.")
+        relocate("io.th0rgal", "com.nexomc.libs")
+        relocate("com.jeff_media", "com.nexomc.libs")
+    }
 }
 
 copyJar {
-    destPath.set(project.findProperty("nexo_ia_plugin_path").toString())
+    destPath.set(project.findProperty("nexo_plugin_path").toString())
     jarName.set(jarName.orNull ?: "${project.name}-${pluginVersion}-${System.currentTimeMillis()}.jar")
-    if ("dev" in jarName.get() && destPath.orNull != null) File(destPath.get()).listFiles { file -> file.extension == "jar" }?.forEach {
+    if (destPath.orNull != null) File(destPath.get()).listFiles { file -> file.extension == "jar" }?.forEach {
         if (jarName.get().startsWith(it.name.substringBefore("-"))) it.delete()
     }
 }
