@@ -140,7 +140,7 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         baseEntity.isInvulnerable = true
         baseEntity.isSilent = true
         baseEntity.isCustomNameVisible = false
-        baseEntity.isInvisible = false
+        baseEntity.isInvisible = true
         baseEntity.setGravity(false)
         val item = NexoItems.itemFromId(itemID)
         val customName = item?.itemName ?: item?.displayName ?: Component.text(itemID)
