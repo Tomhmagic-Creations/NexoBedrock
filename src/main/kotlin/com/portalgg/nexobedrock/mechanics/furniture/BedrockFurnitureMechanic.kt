@@ -7,6 +7,7 @@ import com.nexomc.nexo.items.ItemBuilder
 import com.nexomc.nexo.mechanics.Mechanic
 import com.nexomc.nexo.mechanics.MechanicFactory
 import com.nexomc.nexo.mechanics.breakable.BreakableMechanic
+import com.nexomc.nexo.mechanics.furniture.FurnitureHelpers
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic
 import com.nexomc.nexo.mechanics.furniture.hitbox.BarrierHitbox
 import com.nexomc.nexo.mechanics.furniture.hitbox.FurnitureHitbox
@@ -15,8 +16,15 @@ import com.nexomc.nexo.mechanics.light.LightMechanic
 import com.nexomc.nexo.mechanics.limitedplacing.LimitedPlacing
 import com.nexomc.nexo.utils.AdventureUtils
 import com.nexomc.nexo.utils.BlockHelpers
+import com.nexomc.nexo.utils.BlockHelpers.toBlockLocation
+import com.nexomc.nexo.utils.BlockHelpers.toCenterBlockLocation
+import com.nexomc.nexo.utils.ItemUtils.displayName
+import com.nexomc.nexo.utils.ItemUtils.editItemMeta
 import com.nexomc.nexo.utils.VersionUtil
+import com.nexomc.nexo.utils.drops.Drop
+import com.nexomc.nexo.utils.drops.Loot
 import com.nexomc.nexo.utils.logs.Logs
+import com.nexomc.nexo.utils.wrappers.EnchantmentWrapper
 import com.portalgg.nexobedrock.NexoBedrock
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -27,7 +35,10 @@ import org.bukkit.block.BlockFace
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Interaction
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 
 class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationSection) : Mechanic(factory, section, { itemBuilder: ItemBuilder ->
@@ -151,5 +162,26 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         val BASE_ENTITY_KEY = NamespacedKey(NexoBedrock.instance(), "base_entity")
         val INTERACTION_KEY = NamespacedKey(NexoBedrock.instance(), "interaction")
         val BARRIER_KEY = NamespacedKey(NexoBedrock.instance(), "barrier")
+
+        fun furnitureSpawns(baseEntity: ArmorStand, drop: Drop, itemInHand: ItemStack) {
+            val baseItem = NexoItems.itemFromId(drop.sourceID)!!.build()
+            val location = toBlockLocation(baseEntity.location)
+            val furnitureItem = baseEntity.getItem(EquipmentSlot.HEAD).takeIf { it.type != Material.AIR } ?: NexoItems.itemFromId(drop.sourceID)?.build() ?: return
+            editItemMeta(furnitureItem) { itemMeta: ItemMeta ->
+                baseItem.itemMeta?.takeIf(ItemMeta::hasDisplayName)?.let { displayName(itemMeta, it) }
+            }
+
+            if (!drop.canDrop(itemInHand) || !location.isWorldLoaded) return
+            checkNotNull(location.world)
+
+            when {
+                drop.isSilktouch && itemInHand.itemMeta?.hasEnchant(EnchantmentWrapper.SILK_TOUCH) == true ->
+                    location.world.dropItemNaturally(toCenterBlockLocation(location), baseItem)
+                else -> {
+                    drop.dropLoot(drop.loots().filter { it.itemStack() != baseItem }, location, drop.fortuneMultiplier(itemInHand))
+                    drop.dropLoot(drop.loots().filter { it.itemStack() == baseItem }.map { Loot(drop.sourceID, furnitureItem, it.probability, it.amount) }, location, drop.fortuneMultiplier(itemInHand))
+                }
+            }
+        }
     }
 }

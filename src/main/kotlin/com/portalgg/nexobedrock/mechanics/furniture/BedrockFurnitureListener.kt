@@ -18,17 +18,16 @@ import org.bukkit.*
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Interaction
-import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockDamageEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityTeleportEvent
-import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.EntitiesLoadEvent
@@ -102,6 +101,21 @@ class BedrockFurnitureListener(private val factory: BedrockFurnitureFactory) : L
     fun BlockBreakEvent.onBreak() {
         val mechanic = factory.getMechanic(block) ?: return
         val baseEntity = factory.getBaseEntity(block) ?: return
+
+        if (player.gameMode != GameMode.CREATIVE) BedrockFurnitureMechanic.furnitureSpawns(baseEntity, mechanic.breakable.drop, player.inventory.itemInMainHand)
+        if (VersionUtil.isPaperServer) baseEntity.world.sendGameEvent(player, GameEvent.BLOCK_DESTROY, baseEntity.location.toVector())
+
+        mechanic.removeBaseEntity(baseEntity)
+    }
+
+    @EventHandler
+    fun BlockDamageEvent.onHit() {
+        val mechanic = factory.getMechanic(block) ?: return
+        val baseEntity = factory.getBaseEntity(block) ?: return
+
+        if (player.gameMode != GameMode.CREATIVE) BedrockFurnitureMechanic.furnitureSpawns(baseEntity, mechanic.breakable.drop, player.inventory.itemInMainHand)
+        if (VersionUtil.isPaperServer) baseEntity.world.sendGameEvent(player, GameEvent.BLOCK_DESTROY, baseEntity.location.toVector())
+
         mechanic.removeBaseEntity(baseEntity)
     }
 
