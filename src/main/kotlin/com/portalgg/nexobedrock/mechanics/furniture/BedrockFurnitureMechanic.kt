@@ -60,7 +60,7 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         checkNotNull(location.getWorld())
 
         val baseEntity = location.getWorld().spawn(correctedSpawnLocation(location, facing), ArmorStand::class.java) { e ->
-            setBaseFurnitureData(e, yaw, facing)
+            setBaseFurnitureData(e, yaw)
         }
 
         BedrockFurnitureSeats.spawnSeats(baseEntity, this)
@@ -68,48 +68,7 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         return baseEntity
     }
 
-    fun removeBaseEntity(baseEntity: ArmorStand) {
-        if (seats.isNotEmpty()) BedrockFurnitureSeats.removeSeats(baseEntity)
-        baseEntity.persistentDataContainer.get(INTERACTION_KEY, DataType.asList(DataType.UUID))?.forEach {
-            Bukkit.getEntity(it)?.remove()
-        }
-        baseEntity.persistentDataContainer.get(BARRIER_KEY, DataType.LOCATION_ARRAY)?.forEach {
-            if (it.block.type != Material.BARRIER) return@forEach
-            it.block.type = Material.AIR
-            CustomBlockData(it.block, NexoBedrock.instance()).clear()
-        }
-
-        if (!baseEntity.isDead) baseEntity.remove()
-    }
-
-
-
-    private fun correctedSpawnLocation(baseLocation: Location, facing: BlockFace): Location {
-        val isWall = limitedPlacing?.isWall == true
-        val isRoof = limitedPlacing?.isRoof == true
-        val solidBelow = baseLocation.block.getRelative(BlockFace.DOWN).isSolid
-        val hitboxOffset = (hitbox.hitboxHeight() - 1).toFloat().takeUnless { isRoof && facing == BlockFace.DOWN } ?: -0.49f
-
-        return BlockHelpers.toCenterBlockLocation(baseLocation).apply {
-            if (isRoof && facing == BlockFace.DOWN) y += -hitboxOffset
-        }
-    }
-
-    private fun setBaseFurnitureData(baseEntity: ArmorStand, yaw: Float, blockFace: BlockFace) {
-        baseEntity.isPersistent = true
-        baseEntity.isInvulnerable = true
-        baseEntity.isSilent = true
-        baseEntity.isCustomNameVisible = false
-        baseEntity.isInvisible = false
-        baseEntity.setGravity(false)
-        val item = NexoItems.itemFromId(itemID)
-        val customName = item?.itemName ?: item?.displayName ?: Component.text(itemID)
-        if (VersionUtil.isPaperServer) baseEntity.customName(customName)
-        else baseEntity.customName = AdventureUtils.LEGACY_SERIALIZER.serialize(customName)
-
-        baseEntity.setRotation(yaw, 0f)
-        baseEntity.setItem(EquipmentSlot.HEAD, NexoItems.itemFromId(itemID)?.build())
-
+    fun spawnHitboxes(baseEntity: ArmorStand, yaw: Float) {
         baseEntity.persistentDataContainer.set(FURNITURE_KEY, PersistentDataType.STRING, itemID)
         hitbox.barrierLocations(baseEntity.location, yaw).also {
             baseEntity.persistentDataContainer.set(BARRIER_KEY, DataType.LOCATION_ARRAY, it.toTypedArray())
@@ -132,6 +91,55 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         }.also {
             baseEntity.persistentDataContainer.set(INTERACTION_KEY, DataType.asList(DataType.UUID), it)
         }
+    }
+
+    fun removeBaseEntity(baseEntity: ArmorStand) {
+        BedrockFurnitureSeats.removeSeats(baseEntity)
+        removeHitboxes(baseEntity)
+
+        if (!baseEntity.isDead) baseEntity.remove()
+    }
+
+    fun removeHitboxes(baseEntity: ArmorStand) {
+        baseEntity.persistentDataContainer.get(INTERACTION_KEY, DataType.asList(DataType.UUID))?.forEach {
+            Bukkit.getEntity(it)?.remove()
+        }
+        baseEntity.persistentDataContainer.get(BARRIER_KEY, DataType.LOCATION_ARRAY)?.forEach {
+            if (it.block.type != Material.BARRIER) return@forEach
+            it.block.type = Material.AIR
+            CustomBlockData(it.block, NexoBedrock.instance()).clear()
+        }
+    }
+
+
+
+    private fun correctedSpawnLocation(baseLocation: Location, facing: BlockFace): Location {
+        val isWall = limitedPlacing?.isWall == true
+        val isRoof = limitedPlacing?.isRoof == true
+        val solidBelow = baseLocation.block.getRelative(BlockFace.DOWN).isSolid
+        val hitboxOffset = (hitbox.hitboxHeight() - 1).toFloat().takeUnless { isRoof && facing == BlockFace.DOWN } ?: -0.49f
+
+        return BlockHelpers.toCenterBlockLocation(baseLocation).apply {
+            if (isRoof && facing == BlockFace.DOWN) y += -hitboxOffset
+        }
+    }
+
+    private fun setBaseFurnitureData(baseEntity: ArmorStand, yaw: Float) {
+        baseEntity.isPersistent = true
+        baseEntity.isInvulnerable = true
+        baseEntity.isSilent = true
+        baseEntity.isCustomNameVisible = false
+        baseEntity.isInvisible = false
+        baseEntity.setGravity(false)
+        val item = NexoItems.itemFromId(itemID)
+        val customName = item?.itemName ?: item?.displayName ?: Component.text(itemID)
+        if (VersionUtil.isPaperServer) baseEntity.customName(customName)
+        else baseEntity.customName = AdventureUtils.LEGACY_SERIALIZER.serialize(customName)
+
+        baseEntity.setRotation(yaw, 0f)
+        baseEntity.setItem(EquipmentSlot.HEAD, NexoItems.itemFromId(itemID)?.build())
+
+        spawnHitboxes(baseEntity, yaw)
     }
 
     fun notEnoughSpace(rootLocation: Location, yaw: Float): Boolean {

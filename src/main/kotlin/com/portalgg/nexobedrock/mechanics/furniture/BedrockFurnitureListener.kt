@@ -12,11 +12,9 @@ import com.nexomc.nexo.utils.BlockHelpers
 import com.nexomc.nexo.utils.EventUtils.call
 import com.nexomc.nexo.utils.Utils.swingHand
 import com.nexomc.nexo.utils.VersionUtil
+import com.portalgg.nexobedrock.NexoBedrock
 import io.th0rgal.protectionlib.ProtectionLib
-import org.bukkit.GameEvent
-import org.bukkit.GameMode
-import org.bukkit.Location
-import org.bukkit.Rotation
+import org.bukkit.*
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Interaction
@@ -29,6 +27,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityTeleportEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -104,6 +103,24 @@ class BedrockFurnitureListener(private val factory: BedrockFurnitureFactory) : L
         val mechanic = factory.getMechanic(block) ?: return
         val baseEntity = factory.getBaseEntity(block) ?: return
         mechanic.removeBaseEntity(baseEntity)
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    fun EntityTeleportEvent.onTeleport() {
+        val entity = entity as? Interaction ?: entity as? ArmorStand ?: return
+        val mechanic = factory.getMechanic(entity) ?: return
+        val baseEntity = (entity as? Interaction)?.let(factory::getBaseEntity) ?: entity as? ArmorStand ?: return
+
+        if (entity.uniqueId != baseEntity.uniqueId) isCancelled = true
+        else {
+            BedrockFurnitureSeats.removeSeats(baseEntity)
+            mechanic.removeHitboxes(baseEntity)
+
+            Bukkit.getScheduler().runTaskLater(NexoBedrock.instance(), Runnable {
+                BedrockFurnitureSeats.spawnSeats(baseEntity, mechanic)
+                mechanic.spawnHitboxes(baseEntity, baseEntity.location.yaw)
+            }, 2L)
+        }
     }
 
     @EventHandler
