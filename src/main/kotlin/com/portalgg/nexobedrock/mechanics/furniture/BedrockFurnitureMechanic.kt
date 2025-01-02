@@ -108,7 +108,9 @@ class BedrockFurnitureMechanic(factory: MechanicFactory, section: ConfigurationS
         BedrockFurnitureSeats.removeSeats(baseEntity)
         removeHitboxes(baseEntity)
 
-        if (!baseEntity.isDead) baseEntity.remove()
+        if (!baseEntity.isDead) runCatching {
+            baseEntity.remove()
+        }
     }
 
     fun removeHitboxes(baseEntity: ArmorStand) {

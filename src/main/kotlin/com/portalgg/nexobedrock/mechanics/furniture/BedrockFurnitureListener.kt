@@ -143,7 +143,7 @@ class BedrockFurnitureListener(private val factory: BedrockFurnitureFactory) : L
         val mechanic = factory.getMechanic(entity) ?: return
         val baseEntity = (entity as? Interaction)?.let(factory::getBaseEntity) ?: entity as? ArmorStand ?: return
 
-        mechanic.removeBaseEntity(baseEntity)
+        if (baseEntity.isDead) mechanic.removeHitboxes(baseEntity)
     }
 
     @EventHandler
