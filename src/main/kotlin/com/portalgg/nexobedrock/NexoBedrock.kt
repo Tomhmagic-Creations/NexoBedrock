@@ -23,9 +23,11 @@ class NexoBedrock : JavaPlugin() {
     }
 
     override fun onEnable() {
+        saveDefaultConfig()
         Bukkit.getPluginManager().registerEvents(object : Listener {
             @EventHandler
             fun NexoMechanicsRegisteredEvent.mechanics() {
+                reloadConfig()
                 MechanicsManager.registerMechanicFactory(BedrockFurnitureFactory(), true)
                 Logs.logInfo("Registered <i>\"bedrock_furntiure\" addon-mechanic")
             }

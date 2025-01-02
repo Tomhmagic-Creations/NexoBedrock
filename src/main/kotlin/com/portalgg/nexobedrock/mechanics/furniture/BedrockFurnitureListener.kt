@@ -1,5 +1,6 @@
 package com.portalgg.nexobedrock.mechanics.furniture
 
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent
 import com.nexomc.nexo.api.NexoFurniture
 import com.nexomc.nexo.api.NexoItems
@@ -34,6 +35,21 @@ import org.bukkit.event.world.EntitiesLoadEvent
 import org.bukkit.inventory.EquipmentSlot
 
 class BedrockFurnitureListener(private val factory: BedrockFurnitureFactory) : Listener {
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    fun PlayerInteractEvent.onFurnitureLimitation() {
+        val block = clickedBlock ?: return
+        if (hand != EquipmentSlot.HAND || action != Action.RIGHT_CLICK_BLOCK) return
+        if (!player.isSneaking && BlockHelpers.isInteractable(clickedBlock)) return
+        if (!factory.isFurniture(item)) return
+
+        val radius = factory.furnitureLimit.radius
+        val amount = factory.furnitureLimit.amount.takeIf { it > 0 } ?: return
+        if (radius <= 0) isCancelled = true
+        if (block.world.getNearbyEntities(block.location, radius, radius, radius)
+                .count { factory.isFurniture(it) && it.location.distanceSquared(block.location) <= (radius * radius) } >= amount
+        ) isCancelled = true
+    }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     fun PlayerInteractEvent.onLimitedPlacing() {
