@@ -2,12 +2,20 @@ package com.portalgg.nexobedrock.mechanics.furniture
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent
+import com.destroystokyo.paper.event.player.PlayerUseUnknownEntityEvent
+import com.nexomc.nexo.NexoPlugin
 import com.nexomc.nexo.api.NexoFurniture
 import com.nexomc.nexo.api.NexoItems
+import com.nexomc.nexo.api.events.furniture.NexoFurnitureBreakEvent
+import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent
 import com.nexomc.nexo.configs.Message
 import com.nexomc.nexo.configs.Settings
+import com.nexomc.nexo.mechanics.custom_block.CustomBlockHelpers
+import com.nexomc.nexo.mechanics.furniture.FurnitureFactory
 import com.nexomc.nexo.mechanics.furniture.FurnitureHelpers
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic.RestrictedRotation
+import com.nexomc.nexo.mechanics.furniture.IFurniturePacketManager
+import com.nexomc.nexo.mechanics.furniture.seats.FurnitureSeat
 import com.nexomc.nexo.mechanics.limitedplacing.LimitedPlacing.LimitedPlacingType
 import com.nexomc.nexo.utils.BlockHelpers
 import com.nexomc.nexo.utils.EventUtils.call
@@ -29,6 +37,7 @@ import org.bukkit.event.block.BlockDamageEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityTeleportEvent
+import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.EntitiesLoadEvent
@@ -169,6 +178,38 @@ class BedrockFurnitureListener(private val factory: BedrockFurnitureFactory) : L
         val baseEntity = factory.getBaseEntity(entity) ?: return
 
         mechanic.removeBaseEntity(baseEntity)
+    }
+
+    @EventHandler
+    fun PlayerInteractEntityEvent.onInteract() {
+        val baseEntity = factory.getBaseEntity(rightClicked as? Interaction ?: return) ?: return
+        val mechanic = factory.getMechanic(baseEntity) ?: return
+        val item = player.inventory.getItem(hand)
+
+        BedrockFurnitureInteractEvent(mechanic, baseEntity, player, item, hand, rightClicked.location, Event.Result.DEFAULT, Event.Result.DEFAULT, null).call {
+            if (useFurniture == Event.Result.DENY) isCancelled = true
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun PlayerInteractEvent.onPlayerInteractBarrierHitbox() {
+        val baseEntity = factory.getBaseEntity(clickedBlock ?: return) ?: return
+        val mechanic = factory.getMechanic(baseEntity) ?: return
+
+        when {
+            action == Action.RIGHT_CLICK_BLOCK && ProtectionLib.canInteract(player, baseEntity.location) -> {
+                BedrockFurnitureInteractEvent(mechanic, baseEntity, player, item, hand!!, interactionPoint, useInteractedBlock(), useItemInHand(), blockFace).call {
+                    setUseInteractedBlock(useFurniture)
+                    setUseItemInHand(useItemInHand)
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    fun BedrockFurnitureInteractEvent.onInteract() {
+        if (useFurniture == Event.Result.DENY) return
+        if (mechanic.seats.isNotEmpty() && !player.isSneaking) BedrockFurnitureSeats.sitOnSeat(baseEntity, player, interactionPoint)
     }
 
     @EventHandler

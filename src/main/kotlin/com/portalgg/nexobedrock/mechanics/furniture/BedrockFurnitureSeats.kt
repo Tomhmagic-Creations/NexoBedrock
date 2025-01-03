@@ -3,19 +3,26 @@ package com.portalgg.nexobedrock.mechanics.furniture
 import com.jeff_media.morepersistentdatatypes.DataType
 import com.nexomc.nexo.mechanics.furniture.seats.FurnitureSeat
 import com.nexomc.nexo.mechanics.furniture.seats.FurnitureSeat.Companion.SEAT_KEY
+import com.nexomc.nexo.utils.BlockHelpers
 import com.portalgg.nexobedrock.mechanics.furniture.BedrockFurnitureMechanic.Companion.FURNITURE_KEY
 import org.bukkit.Bukkit
-import org.bukkit.entity.ArmorStand
-import org.bukkit.entity.Entity
-import org.bukkit.entity.Interaction
-import org.bukkit.entity.ItemDisplay
+import org.bukkit.Location
+import org.bukkit.entity.*
 import org.bukkit.persistence.PersistentDataType
 import java.util.*
 
 object BedrockFurnitureSeats {
 
+    fun sitOnSeat(baseEntity: ArmorStand, player: Player, interactionPoint: Location?) {
+        val centeredLoc = BlockHelpers.toCenterLocation(interactionPoint ?: baseEntity.location)
+        baseEntity.persistentDataContainer.get(SEAT_KEY, DataType.asList(DataType.UUID))
+            ?.mapNotNull { Bukkit.getEntity(it).takeIf { i -> i is Interaction && i.passengers.isEmpty() } }
+            ?.minWithOrNull(Comparator.comparingDouble { centeredLoc.distanceSquared(it.location) })
+            ?.addPassenger(player)
+    }
+
     fun spawnSeats(baseEntity: ArmorStand, mechanic: BedrockFurnitureMechanic) {
-        val location = baseEntity.location
+        val location = baseEntity.location.add(0.0, 0.5, 0.0)
         val yaw = baseEntity.location.yaw
         val uuid = baseEntity.uniqueId
         val seatUUIDs = mutableListOf<UUID>()
