@@ -1,5 +1,4 @@
 import xyz.jpenilla.resourcefactory.bukkit.BukkitPluginYaml
-import xyz.jpenilla.resourcefactory.bukkit.Permission
 
 plugins {
     id("java")
@@ -9,7 +8,7 @@ plugins {
     alias(idofrontLibs.plugins.mia.autoversion)
     id("xyz.jpenilla.run-paper") version "2.3.1" // Adds runServer and runMojangMappedServer tasks for testing
     id("xyz.jpenilla.resource-factory-bukkit-convention") version "1.2.0"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.8"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.11" apply false
 }
 
 val pluginVersion: String by project
@@ -24,17 +23,25 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT") //NMS
+    //paperweight.paperDevBundle("1.21.4-R0.1-SNAPSHOT") //NMS
     compileOnly("com.nexomc:nexo:0.9-dev")
 
-    implementation("io.th0rgal:protectionlib:1.8.0")
-    implementation("com.jeff-media:custom-block-data:2.2.2")
-    implementation("com.jeff-media:MorePersistentDataTypes:2.4.0")
-    implementation("com.jeff-media:persistent-data-serializer:1.0")
+    implementation(project(path = ":core"))
+    implementation(project(path = ":v1_20_R3", configuration = "reobf"))
+    implementation(project(path = ":v1_20_R4", configuration = "reobf"))
+    implementation(project(path = ":v1_21_R1", configuration = "reobf"))
+    implementation(project(path = ":v1_21_R2", configuration = "reobf"))
+    implementation(project(path = ":v1_21_R3", configuration = "reobf"))
 }
 
 tasks {
     shadowJar {
+        dependsOn(":v1_20_R3:reobfJar")
+        dependsOn(":v1_20_R4:reobfJar")
+        dependsOn(":v1_21_R1:reobfJar")
+        dependsOn(":v1_21_R2:reobfJar")
+        dependsOn(":v1_21_R3:reobfJar")
+
         relocate("kotlin.", "com.nexomc.libs.kotlin.")
         relocate("io.th0rgal", "com.nexomc.libs")
         relocate("com.jeff_media", "com.nexomc.libs")
@@ -57,4 +64,5 @@ bukkitPluginYaml {
     authors.add("boy0000")
     load = BukkitPluginYaml.PluginLoadOrder.POSTWORLD
     depend = listOf("Nexo")
+    softDepend = listOf("Geyser-Spigot", "floodgate")
 }

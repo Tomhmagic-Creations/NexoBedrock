@@ -1,5 +1,0 @@
-bedrock_furniture:
-  furniture_limit:
-    #-1 radius and/or amount to disable this
-    radius: 20
-    amount: 20
