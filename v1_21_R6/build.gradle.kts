@@ -20,14 +20,10 @@ dependencies {
 
     // Shaded
     implementation(project(":core"))
-    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT") //NMS
+    paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT") //NMS
 }
 
 tasks {
-
-    build {
-        dependsOn(reobfJar)
-    }
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
